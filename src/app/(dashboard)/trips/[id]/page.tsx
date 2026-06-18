@@ -2,14 +2,23 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getTrip } from "../actions";
+import { getTripDays } from "./days/actions";
 import { TripActions } from "./trip-actions";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TripStatusBadge, VisibilityIcon } from "@/components/trip/trip-badges";
+import { TripDaysTimeline } from "@/components/trip/trip-days-timeline";
 import {
   formatTripDateRange,
   type TripStatusValue,
   type TripVisibilityValue,
 } from "@/lib/trips";
+import {
+  formatDistance,
+  formatDrivingTime,
+  toNumberOrNull,
+  toUtcDateKey,
+} from "@/lib/trip-days";
 
 type TripDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -24,7 +33,6 @@ export async function generateMetadata({
 }
 
 const PLACEHOLDER_SECTIONS = [
-  { title: "Reisetage", hint: "Planen Sie Ihre Etappen Tag für Tag." },
   { title: "Orte", hint: "Sammeln Sie besuchte und geplante Orte." },
   { title: "Bilder", hint: "Laden Sie Fotos zu dieser Reise hoch." },
   { title: "Notizen", hint: "Halten Sie Gedanken und Tipps fest." },
@@ -32,11 +40,29 @@ const PLACEHOLDER_SECTIONS = [
 
 export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const { id } = await params;
-  const trip = await getTrip(id);
+  const [trip, days] = await Promise.all([getTrip(id), getTripDays(id)]);
 
   if (!trip) {
     notFound();
   }
+
+  const totalDistance = days.reduce(
+    (sum, day) => sum + (toNumberOrNull(day.distanceKm) ?? 0),
+    0,
+  );
+  const totalDriving = days.reduce(
+    (sum, day) => sum + (day.drivingMinutes ?? 0),
+    0,
+  );
+  const totalDistanceLabel = formatDistance(totalDistance);
+  const totalDrivingLabel = formatDrivingTime(totalDriving);
+
+  // Highlight today's day only while the trip is active.
+  const todayKey = toUtcDateKey(new Date());
+  const currentDayId =
+    trip.status === "ACTIVE"
+      ? (days.find((day) => toUtcDateKey(day.date) === todayKey)?.id ?? null)
+      : null;
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -85,7 +111,51 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
         title={trip.title}
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {/* Reisetage */}
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-semibold tracking-tight">
+              Reisetage{days.length > 0 ? ` (${days.length})` : ""}
+            </h2>
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-[var(--color-muted)]">
+              <span>
+                {days.length} {days.length === 1 ? "Tag" : "Tage"}
+              </span>
+              {totalDistanceLabel ? (
+                <span>Gesamtstrecke: {totalDistanceLabel}</span>
+              ) : null}
+              {totalDrivingLabel ? (
+                <span>Gesamtfahrzeit: {totalDrivingLabel}</span>
+              ) : null}
+            </p>
+          </div>
+          <Link href={`/trips/${trip.id}/days/new`}>
+            <Button>Tag hinzufügen</Button>
+          </Link>
+        </div>
+
+        {days.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+              <p className="text-sm text-[var(--color-muted)]">
+                Noch keine Reisetage. Fügen Sie den ersten Tag hinzu.
+              </p>
+              <Link href={`/trips/${trip.id}/days/new`}>
+                <Button variant="secondary">Ersten Tag hinzufügen</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <TripDaysTimeline
+            tripId={trip.id}
+            days={days}
+            currentDayId={currentDayId}
+          />
+        )}
+      </section>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {PLACEHOLDER_SECTIONS.map((section) => (
           <Card key={section.title}>
             <CardContent className="flex flex-col gap-2">
