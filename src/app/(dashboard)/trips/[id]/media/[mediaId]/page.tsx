@@ -148,7 +148,11 @@ export default async function MediaDetailPage({
         </CardContent>
       </Card>
 
-      <MediaDetailActions tripId={trip.id} mediaId={media.id} />
+      <MediaDetailActions
+        tripId={trip.id}
+        mediaId={media.id}
+        isHighlight={media.isHighlight}
+      />
     </div>
   );
 }

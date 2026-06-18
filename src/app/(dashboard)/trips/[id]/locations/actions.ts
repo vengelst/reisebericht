@@ -165,6 +165,31 @@ export async function getLocation(tripId: string, locationId: string) {
   return prisma.location.findFirst({ where: { id: locationId, tripId } });
 }
 
+export async function toggleLocationHighlight(
+  tripId: string,
+  locationId: string,
+): Promise<LocationActionResult> {
+  const userId = await currentUserId();
+  if (!userId) return { error: "Nicht angemeldet." };
+  if (!(await ownsTrip(tripId, userId)))
+    return { error: "Reise nicht gefunden." };
+
+  const location = await prisma.location.findFirst({
+    where: { id: locationId, tripId },
+    select: { id: true, isHighlight: true },
+  });
+  if (!location) return { error: "Ort nicht gefunden." };
+
+  await prisma.location.update({
+    where: { id: locationId },
+    data: { isHighlight: !location.isHighlight },
+  });
+
+  revalidateTrip(tripId);
+  revalidatePath(`/trips/${tripId}/locations/${locationId}`);
+  return {};
+}
+
 export async function createLocation(
   tripId: string,
   formData: FormData,

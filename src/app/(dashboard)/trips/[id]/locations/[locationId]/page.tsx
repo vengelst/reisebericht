@@ -185,6 +185,7 @@ export default async function LocationDetailPage({
         tripId={trip.id}
         locationId={location.id}
         name={location.name}
+        isHighlight={location.isHighlight}
       />
 
       {/* Bilder an diesem Ort */}

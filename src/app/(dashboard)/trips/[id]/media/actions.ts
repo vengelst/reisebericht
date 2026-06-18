@@ -342,6 +342,31 @@ export async function setTripCover(
   return {};
 }
 
+export async function toggleMediaHighlight(
+  tripId: string,
+  mediaId: string,
+): Promise<MediaActionResult> {
+  const userId = await currentUserId();
+  if (!userId) return { error: "Nicht angemeldet." };
+  if (!(await ownsTrip(tripId, userId)))
+    return { error: "Reise nicht gefunden." };
+
+  const media = await prisma.media.findFirst({
+    where: { id: mediaId, tripId },
+    select: { id: true, isHighlight: true },
+  });
+  if (!media) return { error: "Bild nicht gefunden." };
+
+  await prisma.media.update({
+    where: { id: mediaId },
+    data: { isHighlight: !media.isHighlight },
+  });
+
+  revalidateTrip(tripId);
+  revalidatePath(`/trips/${tripId}/media/${mediaId}`);
+  return {};
+}
+
 export async function deleteMedia(
   tripId: string,
   mediaId: string,

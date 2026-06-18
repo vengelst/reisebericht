@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { deleteLocation } from "../actions";
+import { deleteLocation, toggleLocationHighlight } from "../actions";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -11,15 +11,29 @@ export function LocationDetailActions({
   tripId,
   locationId,
   name,
+  isHighlight,
 }: {
   tripId: string;
   locationId: string;
   name: string;
+  isHighlight: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  function toggleHighlight() {
+    setError(null);
+    startTransition(async () => {
+      const result = await toggleLocationHighlight(tripId, locationId);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   function confirmDelete() {
     setError(null);
@@ -43,6 +57,9 @@ export function LocationDetailActions({
             Bearbeiten
           </Button>
         </Link>
+        <Button variant="ghost" disabled={isPending} onClick={toggleHighlight}>
+          {isHighlight ? "★ Highlight entfernen" : "☆ Als Highlight"}
+        </Button>
         <Button
           variant="ghost"
           disabled={isPending}

@@ -15,6 +15,8 @@ import { Gallery } from "@/components/media/gallery";
 import { getNotes } from "./notes/actions";
 import { QuickNote } from "@/components/notes/quick-note";
 import { NoteListItem } from "@/components/notes/note-list-item";
+import { getHighlights } from "./highlights-actions";
+import { LocationListItem } from "@/components/trip/location-list-item";
 import {
   formatTripDateRange,
   type TripStatusValue,
@@ -42,12 +44,13 @@ export async function generateMetadata({
 
 export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const { id } = await params;
-  const [trip, days, locations, media, notes] = await Promise.all([
+  const [trip, days, locations, media, notes, highlights] = await Promise.all([
     getTrip(id),
     getTripDays(id),
     getLocations(id),
     getMedia(id),
     getNotes(id),
+    getHighlights(id),
   ]);
 
   if (!trip) {
@@ -55,6 +58,15 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
   }
 
   const recentNotes = notes.slice(0, 3);
+  const hasHighlights = Boolean(
+    highlights &&
+      (highlights.locations.length > 0 ||
+        highlights.media.length > 0 ||
+        highlights.notes.length > 0),
+  );
+  const highlightImages = highlights
+    ? toGalleryImages(highlights.media.slice(0, 6))
+    : [];
 
   const coverMedia =
     media.find((m) => m.id === trip.coverImageId) ??
@@ -158,6 +170,12 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
         title={trip.title}
       />
 
+      <div>
+        <Link href={`/trips/${trip.id}/story`}>
+          <Button variant="secondary">Reisegeschichte ansehen →</Button>
+        </Link>
+      </div>
+
       {/* Reisetage */}
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -215,6 +233,60 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
           <TripLocations tripId={trip.id} locations={locations} days={days} />
         )}
       </section>
+
+      {/* Highlights */}
+      {hasHighlights && highlights ? (
+        <section className="flex flex-col gap-4 rounded-lg border-l-4 border-amber-400 bg-amber-400/5 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold tracking-tight">★ Highlights</h2>
+            <Link
+              href={`/trips/${trip.id}/story`}
+              className="text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
+            >
+              Reisegeschichte ansehen →
+            </Link>
+          </div>
+
+          {highlights.locations.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium text-[var(--color-muted)]">
+                Orte
+              </h3>
+              <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {highlights.locations.map((location) => (
+                  <li key={location.id}>
+                    <LocationListItem tripId={trip.id} location={location} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {highlightImages.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium text-[var(--color-muted)]">
+                Bilder
+              </h3>
+              <Gallery images={highlightImages} />
+            </div>
+          ) : null}
+
+          {highlights.notes.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium text-[var(--color-muted)]">
+                Notizen
+              </h3>
+              <ul className="flex flex-col gap-2">
+                {highlights.notes.map((note) => (
+                  <li key={note.id}>
+                    <NoteListItem tripId={trip.id} note={note} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {/* Bilder */}
       <section className="flex flex-col gap-4">
