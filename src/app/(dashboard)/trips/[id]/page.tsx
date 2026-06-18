@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TripStatusBadge, VisibilityIcon } from "@/components/trip/trip-badges";
 import { TripDaysTimeline } from "@/components/trip/trip-days-timeline";
 import { TripLocations } from "@/components/trip/trip-locations";
+import { getMedia } from "./media/actions";
+import { Gallery } from "@/components/media/gallery";
 import {
   formatTripDateRange,
   type TripStatusValue,
@@ -21,6 +23,7 @@ import {
   toNumberOrNull,
   toUtcDateKey,
 } from "@/lib/trip-days";
+import { mediaUrl, toGalleryImages } from "@/lib/media";
 
 type TripDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -35,21 +38,28 @@ export async function generateMetadata({
 }
 
 const PLACEHOLDER_SECTIONS = [
-  { title: "Bilder", hint: "Laden Sie Fotos zu dieser Reise hoch." },
   { title: "Notizen", hint: "Halten Sie Gedanken und Tipps fest." },
 ];
 
 export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const { id } = await params;
-  const [trip, days, locations] = await Promise.all([
+  const [trip, days, locations, media] = await Promise.all([
     getTrip(id),
     getTripDays(id),
     getLocations(id),
+    getMedia(id),
   ]);
 
   if (!trip) {
     notFound();
   }
+
+  const coverMedia =
+    media.find((m) => m.id === trip.coverImageId) ??
+    media.find((m) => m.isCover) ??
+    null;
+  const galleryPreview = toGalleryImages(media.slice(0, 6));
+  const inboxCount = media.filter((m) => !m.assigned).length;
 
   const totalDistance = days.reduce(
     (sum, day) => sum + (toNumberOrNull(day.distanceKm) ?? 0),
@@ -111,6 +121,17 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
           ))}
         </p>
       </div>
+
+      {coverMedia ? (
+        <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={mediaUrl(coverMedia.thumbnailLg ?? coverMedia.originalPath)}
+            alt={`Titelbild von ${trip.title}`}
+            className="h-48 w-full object-cover sm:h-64"
+          />
+        </div>
+      ) : null}
 
       <Card>
         <CardContent className="flex flex-col gap-4">
@@ -190,6 +211,50 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
           </Card>
         ) : (
           <TripLocations tripId={trip.id} locations={locations} days={days} />
+        )}
+      </section>
+
+      {/* Bilder */}
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Bilder{media.length > 0 ? ` (${media.length})` : ""}
+          </h2>
+          <Link href={`/trips/${trip.id}/media`}>
+            <Button variant={media.length > 0 ? "secondary" : "primary"}>
+              {media.length > 0 ? "Alle Bilder verwalten" : "Bilder hochladen"}
+            </Button>
+          </Link>
+        </div>
+
+        {inboxCount > 0 ? (
+          <Link
+            href={`/trips/${trip.id}/media?filter=inbox`}
+            className="text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
+          >
+            Eingang: {inboxCount} {inboxCount === 1 ? "Bild" : "Bilder"} ohne
+            Zuordnung
+          </Link>
+        ) : null}
+
+        {media.length === 0 ? (
+          <Card>
+            <CardContent className="py-10 text-center text-sm text-[var(--color-muted)]">
+              Noch keine Bilder. Laden Sie Fotos hoch.
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Gallery images={galleryPreview} />
+            {media.length > 6 ? (
+              <Link
+                href={`/trips/${trip.id}/media`}
+                className="text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
+              >
+                Alle {media.length} Bilder anzeigen
+              </Link>
+            ) : null}
+          </>
         )}
       </section>
 

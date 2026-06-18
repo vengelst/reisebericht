@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getTrips } from "./actions";
+import { getCoverThumbs } from "./[id]/media/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TripStatusBadge, VisibilityIcon } from "@/components/trip/trip-badges";
@@ -9,6 +10,7 @@ import {
   type TripStatusValue,
   type TripVisibilityValue,
 } from "@/lib/trips";
+import { mediaUrl } from "@/lib/media";
 
 export const metadata: Metadata = {
   title: "Reisen",
@@ -16,6 +18,9 @@ export const metadata: Metadata = {
 
 export default async function TripsPage() {
   const trips = await getTrips();
+  const coverThumbs = await getCoverThumbs(
+    trips.map((trip) => trip.coverImageId).filter((id): id is string => Boolean(id)),
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -69,10 +74,22 @@ export default async function TripsPage() {
         </Card>
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {trips.map((trip) => (
+          {trips.map((trip) => {
+            const coverKey = trip.coverImageId
+              ? coverThumbs[trip.coverImageId]
+              : null;
+            return (
             <li key={trip.id}>
               <Link href={`/trips/${trip.id}`} className="block h-full">
-                <Card className="h-full transition-colors hover:border-[var(--color-accent)]/60">
+                <Card className="h-full overflow-hidden transition-colors hover:border-[var(--color-accent)]/60">
+                  {coverKey ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={mediaUrl(coverKey)}
+                      alt={`Titelbild von ${trip.title}`}
+                      className="h-32 w-full object-cover"
+                    />
+                  ) : null}
                   <CardContent className="flex h-full flex-col gap-3">
                     <div className="flex items-start justify-between gap-3">
                       <h2 className="line-clamp-2 text-base font-semibold text-foreground">
@@ -106,7 +123,8 @@ export default async function TripsPage() {
                 </Card>
               </Link>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

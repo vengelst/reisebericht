@@ -4,11 +4,15 @@ import type { Metadata } from "next";
 import { getTrip } from "../../../actions";
 import { getTripDay } from "../../days/actions";
 import { getLocation } from "../actions";
+import { getMediaByLocation } from "../../media/actions";
 import { LocationDetailActions } from "./location-detail-actions";
 import { TripMap } from "@/components/map/trip-map";
+import { Gallery } from "@/components/media/gallery";
+import { UploadZone } from "@/components/media/upload-zone";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { toGalleryImages } from "@/lib/media";
 import {
   categoryEmoji,
   categoryLabel,
@@ -32,7 +36,6 @@ export async function generateMetadata({
 }
 
 const PLACEHOLDER_SECTIONS = [
-  { title: "Bilder an diesem Ort", hint: "Fotos zu diesem Ort." },
   { title: "Notizen", hint: "Weitere Notizen zu diesem Ort." },
 ];
 
@@ -51,9 +54,10 @@ export default async function LocationDetailPage({
   params,
 }: LocationDetailPageProps) {
   const { id, locationId } = await params;
-  const [trip, location] = await Promise.all([
+  const [trip, location, media] = await Promise.all([
     getTrip(id),
     getLocation(id, locationId),
+    getMediaByLocation(id, locationId),
   ]);
 
   if (!trip || !location) {
@@ -64,6 +68,7 @@ export default async function LocationDetailPage({
     ? await getTripDay(id, location.tripDayId)
     : null;
   const stars = formatRatingStars(location.rating);
+  const locationImages = toGalleryImages(media);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -180,6 +185,22 @@ export default async function LocationDetailPage({
         locationId={location.id}
         name={location.name}
       />
+
+      {/* Bilder an diesem Ort */}
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Bilder{locationImages.length > 0 ? ` (${locationImages.length})` : ""}
+          </h2>
+          <Link href={`/trips/${trip.id}/media?filter=location`}>
+            <Button variant="secondary">Alle Bilder</Button>
+          </Link>
+        </div>
+        <UploadZone tripId={trip.id} defaultLocationId={location.id} />
+        {locationImages.length > 0 ? (
+          <Gallery images={locationImages} />
+        ) : null}
+      </section>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {PLACEHOLDER_SECTIONS.map((section) => (

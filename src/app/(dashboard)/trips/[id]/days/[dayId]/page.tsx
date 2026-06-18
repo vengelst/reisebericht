@@ -4,16 +4,20 @@ import type { Metadata } from "next";
 import { getTrip } from "../../../actions";
 import { getTripDay } from "../actions";
 import { getLocationsByDay } from "../../locations/actions";
+import { getMediaByDay } from "../../media/actions";
 import { DayDetailActions } from "./day-detail-actions";
 import { TripMap } from "@/components/map/trip-map";
 import { LocationListItem } from "@/components/trip/location-list-item";
-import { Button } from "@/components/ui/button";
+import { Gallery } from "@/components/media/gallery";
+import { UploadZone } from "@/components/media/upload-zone";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   formatDistance,
   formatDrivingTime,
   formatTripDayDate,
 } from "@/lib/trip-days";
+import { toGalleryImages } from "@/lib/media";
 import type { LocationCategoryValue } from "@/lib/locations";
 
 type DayDetailPageProps = {
@@ -29,7 +33,6 @@ export async function generateMetadata({
 }
 
 const PLACEHOLDER_SECTIONS = [
-  { title: "Bilder an diesem Tag", hint: "Fotos zu diesem Tag." },
   { title: "Notizen", hint: "Weitere Notizen zu diesem Tag." },
 ];
 
@@ -46,10 +49,11 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 export default async function DayDetailPage({ params }: DayDetailPageProps) {
   const { id, dayId } = await params;
-  const [trip, day, locations] = await Promise.all([
+  const [trip, day, locations, media] = await Promise.all([
     getTrip(id),
     getTripDay(id, dayId),
     getLocationsByDay(id, dayId),
+    getMediaByDay(id, dayId),
   ]);
 
   if (!trip || !day) {
@@ -58,6 +62,7 @@ export default async function DayDetailPage({ params }: DayDetailPageProps) {
 
   const distance = formatDistance(day.distanceKm);
   const driving = formatDrivingTime(day.drivingMinutes);
+  const dayImages = toGalleryImages(media);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -164,6 +169,20 @@ export default async function DayDetailPage({ params }: DayDetailPageProps) {
             </ul>
           </div>
         )}
+      </section>
+
+      {/* Bilder an diesem Tag */}
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Bilder{dayImages.length > 0 ? ` (${dayImages.length})` : ""}
+          </h2>
+          <Link href={`/trips/${trip.id}/media?filter=day`}>
+            <Button variant="secondary">Alle Bilder</Button>
+          </Link>
+        </div>
+        <UploadZone tripId={trip.id} defaultTripDayId={day.id} />
+        {dayImages.length > 0 ? <Gallery images={dayImages} /> : null}
       </section>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
