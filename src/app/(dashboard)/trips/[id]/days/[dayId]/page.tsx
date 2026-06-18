@@ -3,13 +3,18 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getTrip } from "../../../actions";
 import { getTripDay } from "../actions";
+import { getLocationsByDay } from "../../locations/actions";
 import { DayDetailActions } from "./day-detail-actions";
+import { TripMap } from "@/components/map/trip-map";
+import { LocationListItem } from "@/components/trip/location-list-item";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   formatDistance,
   formatDrivingTime,
   formatTripDayDate,
 } from "@/lib/trip-days";
+import type { LocationCategoryValue } from "@/lib/locations";
 
 type DayDetailPageProps = {
   params: Promise<{ id: string; dayId: string }>;
@@ -24,7 +29,6 @@ export async function generateMetadata({
 }
 
 const PLACEHOLDER_SECTIONS = [
-  { title: "Orte an diesem Tag", hint: "Besuchte und geplante Orte." },
   { title: "Bilder an diesem Tag", hint: "Fotos zu diesem Tag." },
   { title: "Notizen", hint: "Weitere Notizen zu diesem Tag." },
 ];
@@ -42,7 +46,11 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 export default async function DayDetailPage({ params }: DayDetailPageProps) {
   const { id, dayId } = await params;
-  const [trip, day] = await Promise.all([getTrip(id), getTripDay(id, dayId)]);
+  const [trip, day, locations] = await Promise.all([
+    getTrip(id),
+    getTripDay(id, dayId),
+    getLocationsByDay(id, dayId),
+  ]);
 
   if (!trip || !day) {
     notFound();
@@ -84,10 +92,7 @@ export default async function DayDetailPage({ params }: DayDetailPageProps) {
           ) : null}
 
           <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <DetailRow
-              label="Startort"
-              value={day.startLocation ?? "—"}
-            />
+            <DetailRow label="Startort" value={day.startLocation ?? "—"} />
             <DetailRow label="Zielort" value={day.endLocation ?? "—"} />
             <DetailRow label="Strecke" value={distance || "—"} />
             <DetailRow label="Fahrzeit" value={driving || "—"} />
@@ -116,7 +121,52 @@ export default async function DayDetailPage({ params }: DayDetailPageProps) {
         dayNumber={day.dayNumber}
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {/* Orte an diesem Tag */}
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Orte an diesem Tag{locations.length > 0 ? ` (${locations.length})` : ""}
+          </h2>
+          <Link href={`/trips/${trip.id}/locations/new?dayId=${day.id}`}>
+            <Button>Ort zu diesem Tag hinzufügen</Button>
+          </Link>
+        </div>
+
+        {locations.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center text-sm text-[var(--color-muted)]">
+              Noch keine Orte für diesen Tag.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <TripMap
+              tripId={trip.id}
+              markers={locations.map((location) => ({
+                id: location.id,
+                name: location.name,
+                category: location.category as LocationCategoryValue,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                isHighlight: location.isHighlight,
+                description: location.description,
+                tripDayId: location.tripDayId,
+                sortOrder: location.sortOrder,
+              }))}
+              heightClassName="h-[260px] sm:h-[320px]"
+            />
+            <ul className="flex flex-col gap-2">
+              {locations.map((location) => (
+                <li key={location.id}>
+                  <LocationListItem tripId={trip.id} location={location} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {PLACEHOLDER_SECTIONS.map((section) => (
           <Card key={section.title}>
             <CardContent className="flex flex-col gap-2">

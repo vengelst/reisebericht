@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getTrip } from "../actions";
 import { getTripDays } from "./days/actions";
+import { getLocations } from "./locations/actions";
 import { TripActions } from "./trip-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TripStatusBadge, VisibilityIcon } from "@/components/trip/trip-badges";
 import { TripDaysTimeline } from "@/components/trip/trip-days-timeline";
+import { TripLocations } from "@/components/trip/trip-locations";
 import {
   formatTripDateRange,
   type TripStatusValue,
@@ -33,14 +35,17 @@ export async function generateMetadata({
 }
 
 const PLACEHOLDER_SECTIONS = [
-  { title: "Orte", hint: "Sammeln Sie besuchte und geplante Orte." },
   { title: "Bilder", hint: "Laden Sie Fotos zu dieser Reise hoch." },
   { title: "Notizen", hint: "Halten Sie Gedanken und Tipps fest." },
 ];
 
 export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const { id } = await params;
-  const [trip, days] = await Promise.all([getTrip(id), getTripDays(id)]);
+  const [trip, days, locations] = await Promise.all([
+    getTrip(id),
+    getTripDays(id),
+    getLocations(id),
+  ]);
 
   if (!trip) {
     notFound();
@@ -56,6 +61,17 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
   );
   const totalDistanceLabel = formatDistance(totalDistance);
   const totalDrivingLabel = formatDrivingTime(totalDriving);
+  const highlightCount = locations.filter((l) => l.isHighlight).length;
+
+  const stats = [
+    `${days.length} ${days.length === 1 ? "Tag" : "Tage"}`,
+    totalDistanceLabel ? `Gesamtstrecke: ${totalDistanceLabel}` : null,
+    totalDrivingLabel ? `Gesamtfahrzeit: ${totalDrivingLabel}` : null,
+    `${locations.length} ${locations.length === 1 ? "Ort" : "Orte"}`,
+    highlightCount > 0
+      ? `${highlightCount} ${highlightCount === 1 ? "Highlight" : "Highlights"}`
+      : null,
+  ].filter((value): value is string => Boolean(value));
 
   // Highlight today's day only while the trip is active.
   const todayKey = toUtcDateKey(new Date());
@@ -86,6 +102,14 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
             withLabel
           />
         </div>
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-[var(--color-muted)]">
+          {stats.map((stat, index) => (
+            <span key={stat} className="flex items-center gap-x-3">
+              {index > 0 ? <span aria-hidden="true">·</span> : null}
+              {stat}
+            </span>
+          ))}
+        </p>
       </div>
 
       <Card>
@@ -113,23 +137,10 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
 
       {/* Reisetage */}
       <section className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold tracking-tight">
-              Reisetage{days.length > 0 ? ` (${days.length})` : ""}
-            </h2>
-            <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-[var(--color-muted)]">
-              <span>
-                {days.length} {days.length === 1 ? "Tag" : "Tage"}
-              </span>
-              {totalDistanceLabel ? (
-                <span>Gesamtstrecke: {totalDistanceLabel}</span>
-              ) : null}
-              {totalDrivingLabel ? (
-                <span>Gesamtfahrzeit: {totalDrivingLabel}</span>
-              ) : null}
-            </p>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Reisetage{days.length > 0 ? ` (${days.length})` : ""}
+          </h2>
           <Link href={`/trips/${trip.id}/days/new`}>
             <Button>Tag hinzufügen</Button>
           </Link>
@@ -155,7 +166,34 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
         )}
       </section>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {/* Orte */}
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Orte{locations.length > 0 ? ` (${locations.length})` : ""}
+          </h2>
+          <Link href={`/trips/${trip.id}/locations/new`}>
+            <Button>Ort hinzufügen</Button>
+          </Link>
+        </div>
+
+        {locations.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+              <p className="text-sm text-[var(--color-muted)]">
+                Noch keine Orte. Fügen Sie den ersten Ort hinzu.
+              </p>
+              <Link href={`/trips/${trip.id}/locations/new`}>
+                <Button variant="secondary">Ersten Ort hinzufügen</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <TripLocations tripId={trip.id} locations={locations} days={days} />
+        )}
+      </section>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {PLACEHOLDER_SECTIONS.map((section) => (
           <Card key={section.title}>
             <CardContent className="flex flex-col gap-2">
