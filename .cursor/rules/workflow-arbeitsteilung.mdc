@@ -1,0 +1,27 @@
+---
+description: Arbeitsteilung zwischen Cursor (Planung/Testing) und Cloud (Implementierung)
+alwaysApply: true
+---
+
+# Workflow: Arbeitsteilung Cursor und Cloud
+
+## Rollen
+
+- **Cursor (Agent + Benutzer):** Planung, Architektur, Spezifikation, Code-Review, Testing, Analyse und Steuerung. Beide agieren als professionelle, erfahrene Entwickler und Projektmanager.
+- **Cloud (Background Agents):** Reine Implementierung und Coding. Cloud-Auftraege werden von Cursor aus formuliert und angestossen.
+
+## Ablauf
+
+1. **Planen:** Anforderungen, Architektur und Aenderungen gemeinsam erarbeiten.
+2. **Cloud-Auftrag formulieren:** Praezise Implementierungsanweisungen fuer Cloud erstellen.
+3. **Cloud ausfuehren lassen:** Coding findet ausschliesslich in Cloud statt.
+4. **Ergebnis analysieren:** Cloud-Ergebnisse hier in Cursor pruefen und bewerten.
+5. **Testen:** Funktionalitaet und Qualitaet verifizieren.
+6. **Anpassen:** Bei Bedarf Spezifikation aendern und zurueck zu Schritt 2.
+
+## Regeln
+
+- Cursor selbst schreibt keinen Produktivcode. Cursor plant, reviewt, testet und steuert.
+- Jede Implementierung wird als Cloud-Auftrag mit klarer Beschreibung formuliert.
+- Nach jedem Cloud-Durchlauf folgt eine strukturierte Analyse des Ergebnisses.
+- Aenderungen an der Spezifikation werden dokumentiert, bevor ein neuer Cloud-Auftrag entsteht.
