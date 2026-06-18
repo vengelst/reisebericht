@@ -1,14 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-
-const navItems = [
-  { href: "/dashboard", label: "Übersicht" },
-  { href: "/trips", label: "Reisen" },
-  { href: "/media", label: "Medien" },
-  { href: "/settings", label: "Einstellungen" },
-];
+import { MobileNav } from "@/components/layout/mobile-nav";
+import { navItems } from "./nav-items";
+import { signOutAction } from "./auth-actions";
 
 export default async function DashboardLayout({
   children,
@@ -18,11 +14,6 @@ export default async function DashboardLayout({
   const session = await auth();
   if (!session?.user) {
     redirect("/login");
-  }
-
-  async function handleSignOut() {
-    "use server";
-    await signOut({ redirectTo: "/login" });
   }
 
   return (
@@ -53,7 +44,7 @@ export default async function DashboardLayout({
               {session.user.email}
             </p>
           </div>
-          <form action={handleSignOut}>
+          <form action={signOutAction}>
             <Button type="submit" variant="secondary" size="sm" className="w-full">
               Abmelden
             </Button>
@@ -62,16 +53,17 @@ export default async function DashboardLayout({
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-6 md:hidden">
+        <header className="flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 md:hidden">
+          <MobileNav
+            navItems={navItems}
+            displayName={session.user.displayName}
+            email={session.user.email}
+          />
           <span className="flex items-center gap-2 text-base font-semibold">
             <span className="inline-block h-3 w-3 rounded-full bg-[var(--color-accent)]" />
             Reisebericht
           </span>
-          <form action={handleSignOut}>
-            <Button type="submit" variant="ghost" size="sm">
-              Abmelden
-            </Button>
-          </form>
+          <span className="w-10" aria-hidden="true" />
         </header>
         <main className="flex-1 p-6 md:p-8">{children}</main>
       </div>

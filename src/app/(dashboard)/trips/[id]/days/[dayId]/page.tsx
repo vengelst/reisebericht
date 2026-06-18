@@ -5,6 +5,9 @@ import { getTrip } from "../../../actions";
 import { getTripDay } from "../actions";
 import { getLocationsByDay } from "../../locations/actions";
 import { getMediaByDay } from "../../media/actions";
+import { getNotesByDay } from "../../notes/actions";
+import { QuickNote } from "@/components/notes/quick-note";
+import { NoteListItem } from "@/components/notes/note-list-item";
 import { DayDetailActions } from "./day-detail-actions";
 import { TripMap } from "@/components/map/trip-map";
 import { LocationListItem } from "@/components/trip/location-list-item";
@@ -32,10 +35,6 @@ export async function generateMetadata({
   return { title: day ? `Tag ${day.dayNumber}` : "Reisetag" };
 }
 
-const PLACEHOLDER_SECTIONS = [
-  { title: "Notizen", hint: "Weitere Notizen zu diesem Tag." },
-];
-
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
@@ -49,11 +48,12 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 export default async function DayDetailPage({ params }: DayDetailPageProps) {
   const { id, dayId } = await params;
-  const [trip, day, locations, media] = await Promise.all([
+  const [trip, day, locations, media, notes] = await Promise.all([
     getTrip(id),
     getTripDay(id, dayId),
     getLocationsByDay(id, dayId),
     getMediaByDay(id, dayId),
+    getNotesByDay(id, dayId),
   ]);
 
   if (!trip || !day) {
@@ -185,23 +185,27 @@ export default async function DayDetailPage({ params }: DayDetailPageProps) {
         {dayImages.length > 0 ? <Gallery images={dayImages} /> : null}
       </section>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {PLACEHOLDER_SECTIONS.map((section) => (
-          <Card key={section.title}>
-            <CardContent className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-medium text-foreground">
-                  {section.title}
-                </h3>
-                <span className="shrink-0 rounded-full bg-[var(--color-surface-elevated)] px-2 py-0.5 text-xs text-[var(--color-muted)]">
-                  Kommt bald
-                </span>
-              </div>
-              <p className="text-sm text-[var(--color-muted)]">{section.hint}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Notizen */}
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Notizen{notes.length > 0 ? ` (${notes.length})` : ""}
+          </h2>
+          <Link href={`/trips/${trip.id}/notes`}>
+            <Button variant="secondary">Alle Notizen</Button>
+          </Link>
+        </div>
+        <QuickNote tripId={trip.id} tripDayId={day.id} />
+        {notes.length > 0 ? (
+          <ul className="flex flex-col gap-3">
+            {notes.map((note) => (
+              <li key={note.id}>
+                <NoteListItem tripId={trip.id} note={note} />
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
     </div>
   );
 }

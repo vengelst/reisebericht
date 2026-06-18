@@ -12,6 +12,9 @@ import { TripDaysTimeline } from "@/components/trip/trip-days-timeline";
 import { TripLocations } from "@/components/trip/trip-locations";
 import { getMedia } from "./media/actions";
 import { Gallery } from "@/components/media/gallery";
+import { getNotes } from "./notes/actions";
+import { QuickNote } from "@/components/notes/quick-note";
+import { NoteListItem } from "@/components/notes/note-list-item";
 import {
   formatTripDateRange,
   type TripStatusValue,
@@ -37,22 +40,21 @@ export async function generateMetadata({
   return { title: trip ? trip.title : "Reise" };
 }
 
-const PLACEHOLDER_SECTIONS = [
-  { title: "Notizen", hint: "Halten Sie Gedanken und Tipps fest." },
-];
-
 export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const { id } = await params;
-  const [trip, days, locations, media] = await Promise.all([
+  const [trip, days, locations, media, notes] = await Promise.all([
     getTrip(id),
     getTripDays(id),
     getLocations(id),
     getMedia(id),
+    getNotes(id),
   ]);
 
   if (!trip) {
     notFound();
   }
+
+  const recentNotes = notes.slice(0, 3);
 
   const coverMedia =
     media.find((m) => m.id === trip.coverImageId) ??
@@ -258,23 +260,34 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
         )}
       </section>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {PLACEHOLDER_SECTIONS.map((section) => (
-          <Card key={section.title}>
-            <CardContent className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-medium text-foreground">
-                  {section.title}
-                </h3>
-                <span className="rounded-full bg-[var(--color-surface-elevated)] px-2 py-0.5 text-xs text-[var(--color-muted)]">
-                  Kommt bald
-                </span>
-              </div>
-              <p className="text-sm text-[var(--color-muted)]">{section.hint}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Notizen */}
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Notizen{notes.length > 0 ? ` (${notes.length})` : ""}
+          </h2>
+          {notes.length > 0 ? (
+            <Link
+              href={`/trips/${trip.id}/notes`}
+              className="text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]"
+            >
+              Alle {notes.length} Notizen
+            </Link>
+          ) : null}
+        </div>
+
+        <QuickNote tripId={trip.id} />
+
+        {recentNotes.length > 0 ? (
+          <ul className="flex flex-col gap-3">
+            {recentNotes.map((note) => (
+              <li key={note.id}>
+                <NoteListItem tripId={trip.id} note={note} />
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
     </div>
   );
 }
