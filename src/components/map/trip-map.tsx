@@ -29,6 +29,8 @@ type TripMapProps = {
   /** Tailwind height classes, e.g. "h-[300px] sm:h-[400px]". */
   heightClassName?: string;
   className?: string;
+  /** Public mode: popups show no "Details anzeigen" link. */
+  readOnly?: boolean;
 };
 
 function escapeHtml(value: string): string {
@@ -43,6 +45,7 @@ function escapeHtml(value: string): string {
 function popupHtml(
   tripId: string,
   marker: TripMapMarker,
+  readOnly: boolean,
 ): string {
   const name = escapeHtml(marker.name);
   const label = escapeHtml(categoryLabel(marker.category));
@@ -51,6 +54,9 @@ function popupHtml(
         marker.description,
       )}</p>`
     : "";
+  const detailLink = readOnly
+    ? ""
+    : `<a href="/trips/${tripId}/locations/${marker.id}" style="display:inline-block;margin-top:8px;font-size:12px;color:#4f46e5;font-weight:600;">Details anzeigen →</a>`;
   return `
     <div style="min-width:160px;font-family:inherit;">
       <strong style="font-size:14px;color:#0b0d12;">${name}</strong>
@@ -58,7 +64,7 @@ function popupHtml(
         <span style="display:inline-block;background:#eef;border-radius:9999px;padding:1px 8px;font-size:11px;color:#3730a3;">${label}</span>
       </div>
       ${description}
-      <a href="/trips/${tripId}/locations/${marker.id}" style="display:inline-block;margin-top:8px;font-size:12px;color:#4f46e5;font-weight:600;">Details anzeigen →</a>
+      ${detailLink}
     </div>
   `;
 }
@@ -93,6 +99,7 @@ export function TripMap({
   markers,
   heightClassName = "h-[300px] sm:h-[400px]",
   className = "",
+  readOnly = false,
 }: TripMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
@@ -141,7 +148,7 @@ export function TripMap({
           const popup = new maplibregl.Popup({
             offset: 24,
             closeButton: true,
-          }).setHTML(popupHtml(tripId, marker));
+          }).setHTML(popupHtml(tripId, marker, readOnly));
 
           new maplibregl.Marker({
             color: marker.isHighlight
@@ -174,7 +181,7 @@ export function TripMap({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [tripId, markers]);
+  }, [tripId, markers, readOnly]);
 
   return (
     <div

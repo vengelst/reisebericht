@@ -46,17 +46,33 @@ function NoteBlock({ note, highlight }: { note: Note; highlight?: boolean }) {
   );
 }
 
-function HighlightImage({ tripId, media }: { tripId: string; media: Media }) {
+function HighlightImage({
+  tripId,
+  media,
+  readOnly,
+  shareToken,
+}: {
+  tripId: string;
+  media: Media;
+  readOnly: boolean;
+  shareToken?: string;
+}) {
+  const tokenOpts = shareToken ? { shareToken } : undefined;
+  const img = (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={mediaUrl(media.thumbnailLg ?? media.originalPath, tokenOpts)}
+      alt={media.caption ?? "Highlight-Bild"}
+      className="max-h-[70vh] w-full object-cover"
+    />
+  );
   return (
     <figure className="overflow-hidden rounded-lg border-l-4 border-amber-400 bg-amber-400/5">
-      <Link href={`/trips/${tripId}/media/${media.id}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={mediaUrl(media.thumbnailLg ?? media.originalPath)}
-          alt={media.caption ?? "Highlight-Bild"}
-          className="max-h-[70vh] w-full object-cover"
-        />
-      </Link>
+      {readOnly ? (
+        img
+      ) : (
+        <Link href={`/trips/${tripId}/media/${media.id}`}>{img}</Link>
+      )}
       {media.caption ? (
         <figcaption className="px-3 py-2 text-sm text-[var(--color-muted)]">
           ★ {media.caption}
@@ -69,11 +85,16 @@ function HighlightImage({ tripId, media }: { tripId: string; media: Media }) {
 export function StoryDaySection({
   tripId,
   storyDay,
+  readOnly = false,
+  shareToken,
 }: {
   tripId: string;
   storyDay: StoryDay;
+  readOnly?: boolean;
+  shareToken?: string;
 }) {
   const { day, locations, media, notes } = storyDay;
+  const tokenOpts = shareToken ? { shareToken } : undefined;
 
   const highlightLocations = locations.filter((l) => l.isHighlight);
   const normalLocations = locations.filter((l) => !l.isHighlight);
@@ -94,15 +115,21 @@ export function StoryDaySection({
     highlightMedia.length > 0 ||
     highlightNotes.length > 0;
 
+  const heading = `Tag ${day.dayNumber} — ${formatTripDayDate(day.date)}`;
+
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-col gap-1 border-b border-[var(--color-border)] pb-3">
-        <Link
-          href={`/trips/${tripId}/days/${day.id}`}
-          className="text-xl font-semibold tracking-tight transition-colors hover:text-[var(--color-accent)]"
-        >
-          Tag {day.dayNumber} — {formatTripDayDate(day.date)}
-        </Link>
+        {readOnly ? (
+          <h2 className="text-xl font-semibold tracking-tight">{heading}</h2>
+        ) : (
+          <Link
+            href={`/trips/${tripId}/days/${day.id}`}
+            className="text-xl font-semibold tracking-tight transition-colors hover:text-[var(--color-accent)]"
+          >
+            {heading}
+          </Link>
+        )}
         {day.title ? (
           <p className="text-base text-foreground">{day.title}</p>
         ) : null}
@@ -120,20 +147,28 @@ export function StoryDaySection({
 
       {hasHighlights ? (
         <div className="flex flex-col gap-3 rounded-lg border-l-4 border-amber-400 bg-amber-400/5 p-4">
-          <h3 className="text-sm font-semibold text-amber-300">
-            ★ Highlights
-          </h3>
+          <h3 className="text-sm font-semibold text-amber-300">★ Highlights</h3>
           {highlightLocations.length > 0 ? (
             <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {highlightLocations.map((location) => (
                 <li key={location.id}>
-                  <LocationListItem tripId={tripId} location={location} />
+                  <LocationListItem
+                    tripId={tripId}
+                    location={location}
+                    readOnly={readOnly}
+                  />
                 </li>
               ))}
             </ul>
           ) : null}
           {highlightMedia.map((item) => (
-            <HighlightImage key={item.id} tripId={tripId} media={item} />
+            <HighlightImage
+              key={item.id}
+              tripId={tripId}
+              media={item}
+              readOnly={readOnly}
+              shareToken={shareToken}
+            />
           ))}
           {highlightNotes.map((note) => (
             <NoteBlock key={note.id} note={note} highlight />
@@ -149,7 +184,11 @@ export function StoryDaySection({
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {normalLocations.map((location) => (
               <li key={location.id}>
-                <LocationListItem tripId={tripId} location={location} />
+                <LocationListItem
+                  tripId={tripId}
+                  location={location}
+                  readOnly={readOnly}
+                />
               </li>
             ))}
           </ul>
@@ -172,20 +211,26 @@ export function StoryDaySection({
           <h3 className="text-sm font-medium text-[var(--color-muted)]">
             Bilder
           </h3>
-          <Gallery images={toGalleryImages(normalMedia)} />
+          <Gallery images={toGalleryImages(normalMedia, tokenOpts)} />
         </div>
       ) : null}
 
       {isEmpty ? (
-        <p className="text-sm text-[var(--color-muted)]">
-          Reisetag ohne Einträge.{" "}
-          <Link
-            href={`/trips/${tripId}/days/${day.id}`}
-            className="text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
-          >
-            Inhalte hinzufügen
-          </Link>
-        </p>
+        readOnly ? (
+          <p className="text-sm text-[var(--color-muted)]">
+            Reisetag ohne Einträge.
+          </p>
+        ) : (
+          <p className="text-sm text-[var(--color-muted)]">
+            Reisetag ohne Einträge.{" "}
+            <Link
+              href={`/trips/${tripId}/days/${day.id}`}
+              className="text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
+            >
+              Inhalte hinzufügen
+            </Link>
+          </p>
+        )
       ) : null}
     </section>
   );

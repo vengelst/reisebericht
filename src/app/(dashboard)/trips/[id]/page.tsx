@@ -16,7 +16,9 @@ import { getNotes } from "./notes/actions";
 import { QuickNote } from "@/components/notes/quick-note";
 import { NoteListItem } from "@/components/notes/note-list-item";
 import { getHighlights } from "./highlights-actions";
+import { getPublication } from "./publication/actions";
 import { LocationListItem } from "@/components/trip/location-list-item";
+import { Badge } from "@/components/ui/badge";
 import {
   formatTripDateRange,
   type TripStatusValue,
@@ -44,18 +46,22 @@ export async function generateMetadata({
 
 export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const { id } = await params;
-  const [trip, days, locations, media, notes, highlights] = await Promise.all([
-    getTrip(id),
-    getTripDays(id),
-    getLocations(id),
-    getMedia(id),
-    getNotes(id),
-    getHighlights(id),
-  ]);
+  const [trip, days, locations, media, notes, highlights, publication] =
+    await Promise.all([
+      getTrip(id),
+      getTripDays(id),
+      getLocations(id),
+      getMedia(id),
+      getNotes(id),
+      getHighlights(id),
+      getPublication(id),
+    ]);
 
   if (!trip) {
     notFound();
   }
+
+  const isPublished = publication?.status === "PUBLISHED";
 
   const recentNotes = notes.slice(0, 3);
   const hasHighlights = Boolean(
@@ -118,6 +124,11 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
             {trip.title}
           </h1>
           <TripStatusBadge status={trip.status as TripStatusValue} />
+          {isPublished ? (
+            <Link href={`/trips/${trip.id}/publication`}>
+              <Badge tone="success">🔗 Öffentlich geteilt</Badge>
+            </Link>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[var(--color-muted)]">
           <span>{formatTripDateRange(trip.startDate, trip.endDate)}</span>
@@ -170,9 +181,12 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
         title={trip.title}
       />
 
-      <div>
+      <div className="flex flex-wrap gap-3">
         <Link href={`/trips/${trip.id}/story`}>
           <Button variant="secondary">Reisegeschichte ansehen →</Button>
+        </Link>
+        <Link href={`/trips/${trip.id}/publication`}>
+          <Button variant="secondary">Freigabe verwalten</Button>
         </Link>
       </div>
 

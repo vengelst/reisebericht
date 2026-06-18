@@ -37,9 +37,18 @@ export type GalleryImage = {
   height: number | null;
 };
 
-/** Builds the app-internal URL that serves a stored object via the API route. */
-export function mediaUrl(key: string): string {
-  return `/api/media/${key}`;
+/**
+ * Builds the app-internal URL that serves a stored object via the API route.
+ * Pass a `shareToken` to append it for public (token-authorised) access.
+ */
+export function mediaUrl(
+  key: string,
+  options?: { shareToken?: string },
+): string {
+  const base = `/api/media/${key}`;
+  return options?.shareToken
+    ? `${base}?token=${encodeURIComponent(options.shareToken)}`
+    : base;
 }
 
 // Minimal shape needed to build a GalleryImage (matches the Prisma Media row).
@@ -57,13 +66,16 @@ type MediaLike = {
 };
 
 /** Maps media rows to serialisable gallery images (URLs via the API route). */
-export function toGalleryImages(media: MediaLike[]): GalleryImage[] {
+export function toGalleryImages(
+  media: MediaLike[],
+  options?: { shareToken?: string },
+): GalleryImage[] {
   return media.map((item) => ({
     id: item.id,
-    smUrl: mediaUrl(item.thumbnailSm ?? item.originalPath),
-    mdUrl: mediaUrl(item.thumbnailMd ?? item.originalPath),
-    lgUrl: mediaUrl(item.thumbnailLg ?? item.originalPath),
-    originalUrl: mediaUrl(item.originalPath),
+    smUrl: mediaUrl(item.thumbnailSm ?? item.originalPath, options),
+    mdUrl: mediaUrl(item.thumbnailMd ?? item.originalPath, options),
+    lgUrl: mediaUrl(item.thumbnailLg ?? item.originalPath, options),
+    originalUrl: mediaUrl(item.originalPath, options),
     caption: item.caption,
     isHighlight: item.isHighlight,
     isCover: item.isCover,
