@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOutAction } from "@/app/(dashboard)/auth-actions";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 
 type NavItem = { href: string; label: string };
@@ -113,6 +114,10 @@ export function MobileNav({ navItems, displayName, email }: MobileNavProps) {
             })}
           </ul>
         </nav>
+
+        <div className="border-t border-[var(--color-border)] p-4">
+          <ThemeToggle className="w-full justify-center" />
+        </div>
 
         <div className="border-t border-[var(--color-border)] p-4">
           <div className="mb-3 text-sm">

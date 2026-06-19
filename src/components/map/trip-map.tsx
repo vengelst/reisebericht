@@ -9,7 +9,8 @@ import {
   LOCATION_HIGHLIGHT_COLOR,
   type LocationCategoryValue,
 } from "@/lib/locations";
-import { DARK_RASTER_STYLE, EUROPE_CENTER, EUROPE_ZOOM } from "./map-style";
+import { rasterStyleForTheme, EUROPE_CENTER, EUROPE_ZOOM } from "./map-style";
+import { useTheme } from "@/lib/use-theme";
 
 export type TripMapMarker = {
   id: string;
@@ -103,6 +104,7 @@ export function TripMap({
 }: TripMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
+  const theme = useTheme();
 
   useEffect(() => {
     let cancelled = false;
@@ -116,7 +118,7 @@ export function TripMap({
       const map = new maplibregl.Map({
         container,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        style: DARK_RASTER_STYLE as any,
+        style: rasterStyleForTheme(theme) as any,
         center: EUROPE_CENTER,
         zoom: EUROPE_ZOOM,
         attributionControl: { compact: true },
@@ -181,7 +183,7 @@ export function TripMap({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [tripId, markers, readOnly]);
+  }, [tripId, markers, readOnly, theme]);
 
   return (
     <div

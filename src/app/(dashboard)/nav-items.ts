@@ -3,6 +3,5 @@
 export const navItems = [
   { href: "/dashboard", label: "Übersicht" },
   { href: "/trips", label: "Reisen" },
-  { href: "/media", label: "Medien" },
   { href: "/settings", label: "Einstellungen" },
 ];

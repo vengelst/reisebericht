@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { navItems } from "./nav-items";
 import { signOutAction } from "./auth-actions";
 
@@ -37,6 +38,9 @@ export default async function DashboardLayout({
             ))}
           </ul>
         </nav>
+        <div className="border-t border-[var(--color-border)] p-4">
+          <ThemeToggle className="w-full justify-center" />
+        </div>
         <div className="border-t border-[var(--color-border)] p-4">
           <div className="mb-3 text-sm">
             <p className="font-medium text-foreground">{session.user.displayName}</p>

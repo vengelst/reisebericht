@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Map as MlMap } from "maplibre-gl";
-import { DARK_RASTER_STYLE } from "./map-style";
+import { rasterStyleForTheme } from "./map-style";
+import { useTheme } from "@/lib/use-theme";
 
 // A read-only map showing a single coordinate (e.g. a photo's GPS location).
 export function PointMap({
@@ -17,6 +18,7 @@ export function PointMap({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
+  const theme = useTheme();
 
   useEffect(() => {
     let cancelled = false;
@@ -30,7 +32,7 @@ export function PointMap({
       const map = new maplibregl.Map({
         container,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        style: DARK_RASTER_STYLE as any,
+        style: rasterStyleForTheme(theme) as any,
         center: [longitude, latitude],
         zoom: 12,
         attributionControl: { compact: true },
@@ -46,7 +48,7 @@ export function PointMap({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [latitude, longitude]);
+  }, [latitude, longitude, theme]);
 
   return (
     <div

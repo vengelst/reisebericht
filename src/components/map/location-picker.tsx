@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Map as MlMap, Marker as MlMarker } from "maplibre-gl";
-import { DARK_RASTER_STYLE, EUROPE_CENTER, EUROPE_ZOOM } from "./map-style";
+import { rasterStyleForTheme, EUROPE_CENTER, EUROPE_ZOOM } from "./map-style";
+import { useTheme } from "@/lib/use-theme";
 
 type LocationPickerProps = {
   /** Initial coordinates (only read once, on mount). */
@@ -22,11 +23,18 @@ export function LocationPicker({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
   const markerRef = useRef<MlMarker | null>(null);
+  const theme = useTheme();
   // Keep the latest onChange without re-initialising the map.
   const onChangeRef = useRef(onChange);
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+
+  // Switch tiles on theme change without re-initialising (keeps the picked marker).
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mapRef.current?.setStyle(rasterStyleForTheme(theme) as any);
+  }, [theme]);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,7 +57,7 @@ export function LocationPicker({
       const map = new maplibregl.Map({
         container,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        style: DARK_RASTER_STYLE as any,
+        style: rasterStyleForTheme(theme) as any,
         center: hasStart ? [startLng, startLat] : EUROPE_CENTER,
         zoom: hasStart ? 11 : EUROPE_ZOOM,
         attributionControl: { compact: true },
